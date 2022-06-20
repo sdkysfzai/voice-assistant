@@ -1,8 +1,8 @@
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:voice_search/models/speech.dart';
 import 'package:voice_search/models/textmodel.dart';
 
@@ -18,23 +18,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  //bool isListening = false;
+  bool isListening = false;
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: HomePageBody(),
-      // floatingActionButton: AvatarGlow(
-      //   animate: isListening,
-      //   endRadius: 75,
-      //   glowColor: Theme.of(context).primaryColor,
-      //   child: FloatingActionButton(
-      //     onPressed: () {},
-      //     child: const Icon(
-      //       Icons.mic,
-      //       size: 36,
-      //     ),
-      //   ),
-      // ),
+      floatingActionButton: AvatarGlow(
+        animate: isListening,
+        endRadius: 75,
+        glowColor: Theme.of(context).primaryColor,
+        child: FloatingActionButton(
+          onPressed: () {},
+          child: const Icon(
+            Icons.mic,
+            size: 36,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -47,7 +47,6 @@ class HomePageBody extends StatefulWidget {
 }
 
 class _HomePageBodyState extends State<HomePageBody> {
-  final _speech = SpeechToText();
   final searchController = TextEditingController();
 
   bool isListening = false;
@@ -56,41 +55,15 @@ class _HomePageBodyState extends State<HomePageBody> {
   List<String> resultTextList = [];
   List<String> resultTextListFinal = [];
   late List<bool> isChecked;
-  Future<bool> ttoggleRecording({
-    required Function(String text) onResult,
-    required ValueChanged<bool> onListening,
-  }) async {
-    if (_speech.isListening) {
-      _speech.stop();
-      return true;
-    }
-    final isAvailable = await _speech.initialize(
-      onStatus: (status) {
-        onListening(_speech.isListening);
-      },
-      // ignore: avoid_print
-      onError: (e) => print('Error: $e'),
-    );
-    if (isAvailable) {
-      _speech.listen(
-          onResult: (result) => setState(
-                () {
-                  resultText = result.recognizedWords;
-                  onResult(result.recognizedWords);
-                },
-              ));
-    }
-    return isAvailable;
-  }
 
   Future openDialog(String resultText, List<String> resultTextListFinal,
       String selectedCommand) {
     if (!isListening) {
-      Navigator.of(context).pop();
       if (resultText.isNotEmpty &&
           resultText != ' ' &&
           resultText != '' &&
           isListening == false) {
+        Navigator.of(context).pop();
         if (selectedCommand == 'voice') {
           showDialog(
               context: context,
@@ -130,7 +103,6 @@ class _HomePageBodyState extends State<HomePageBody> {
             barrierDismissible: false,
             context: context,
             builder: (BuildContext context) {
-              print(resultTextListFinal);
               return StatefulBuilder(
                 builder: (context, setSTate) {
                   return AlertDialog(
@@ -197,10 +169,9 @@ class _HomePageBodyState extends State<HomePageBody> {
   }
 
   Future toggleRecording(String selectedCommand) {
-    return ttoggleRecording(
+    return Speech.toggleRecording(
       onResult: ((text) {
         resultText = context.read<TextModel>().setText(text);
-        print('DADA $resultText');
         //resultText = text;
         resultTextList.add(text);
         resultTextListFinal = resultTextList.toSet().toList();
@@ -219,11 +190,10 @@ class _HomePageBodyState extends State<HomePageBody> {
         } else if (selectedCommand == 'app') {
           openDialog('https://', resultTextListFinal, 'app');
         } else if (selectedCommand == 'voice') {
-          openDialog(resultText, resultTextListFinal, 'voice');
+          openDialog(text, resultTextListFinal, 'voice');
         }
       }),
       onListening: (isListening) {
-        print('isListening $isListening');
         return setState(() {
           this.isListening = isListening;
           context.read<TextModel>().setIsListening(isListening);
